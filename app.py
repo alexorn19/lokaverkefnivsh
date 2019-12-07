@@ -1,5 +1,4 @@
 from flask import Flask, render_template, flash, redirect, url_for, session, request, logging
-#from data import Articles
 from flask_mysqldb import MySQL
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
@@ -17,6 +16,7 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
 mysql = MySQL(app)
 
+#Articles = Articles()
 
 # Index
 @app.route('/')
@@ -30,7 +30,7 @@ def about():
     return render_template('about.html')
 
 
-# Articles
+
 @app.route('/articles')
 def articles():
     cur = mysql.connection.cursor()
@@ -44,12 +44,14 @@ def articles():
     else:
         msg = 'No Articles Found'
         return render_template('articles.html', msg=msg)
+    # Close connection
     cur.close()
 
 
-
+#Single Article
 @app.route('/article/<string:id>/')
 def article(id):
+    # Create cursor
     cur = mysql.connection.cursor()
 
     result = cur.execute("SELECT * FROM articles WHERE id = %s", [id])
@@ -87,6 +89,7 @@ def register():
 
         mysql.connection.commit()
 
+        # Close connection
         cur.close()
 
         flash('You are now registered and can log in', 'success')
@@ -120,7 +123,6 @@ def login():
             else:
                 error = 'Invalid login'
                 return render_template('login.html', error=error)
-
             cur.close()
         else:
             error = 'Username not found'
@@ -141,7 +143,6 @@ def is_logged_in(f):
 
 # Logout
 @app.route('/logout')
-@is_logged_in
 def logout():
     session.clear()
     flash('You are now logged out', 'success')
@@ -162,6 +163,7 @@ def dashboard():
     else:
         msg = 'No Articles Found'
         return render_template('dashboard.html', msg=msg)
+    # Close connection
     cur.close()
 
 # Article Form Class
@@ -169,7 +171,6 @@ class ArticleForm(Form):
     title = StringField('Title', [validators.Length(min=1, max=200)])
     body = TextAreaField('Body', [validators.Length(min=30)])
 
-# Add Article
 @app.route('/add_article', methods=['GET', 'POST'])
 @is_logged_in
 def add_article():
@@ -184,6 +185,7 @@ def add_article():
 
         mysql.connection.commit()
 
+        #Close connection
         cur.close()
 
         flash('Article Created', 'success')
@@ -204,6 +206,7 @@ def edit_article(id):
     article = cur.fetchone()
     cur.close()
     form = ArticleForm(request.form)
+
     form.title.data = article['title']
     form.body.data = article['body']
 
@@ -216,6 +219,7 @@ def edit_article(id):
         cur.execute ("UPDATE articles SET title=%s, body=%s WHERE id=%s",(title, body, id))
         mysql.connection.commit()
 
+        #Close connection
         cur.close()
 
         flash('Article Updated', 'success')
@@ -224,7 +228,7 @@ def edit_article(id):
 
     return render_template('edit_article.html', form=form)
 
-# Delete
+# Delete Article
 @app.route('/delete_article/<string:id>', methods=['POST'])
 @is_logged_in
 def delete_article(id):
@@ -234,6 +238,7 @@ def delete_article(id):
 
     mysql.connection.commit()
 
+    #Close connection
     cur.close()
 
     flash('Article Deleted', 'success')
